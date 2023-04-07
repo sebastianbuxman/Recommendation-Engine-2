@@ -66,54 +66,34 @@ for i in range(K):
     print(top250[i]['title'])
     
 while True:
-    # show options
-    print("\n1: Show recommendations\n2: Search movie\n3: Select movie\n4: View selected movies\n5: Exit program")
-    option = int(input("Choose option: "))
-    
+    option: int(input("\n1: Search Movie Titles \n2: Exit"))
     match option:
         case 1:
-            # show recommendations
-            print("\nMovie Recommendations:")
-            for movie in recommendations:
-                print(movie)
-        case 2:
-            # get search term
-            term = str(input("\nSearch: "))
-            searched = movies.search_movie(term)
+            term = str(input("Enter Movie title of choice:"))
+            selected_movie = movies.search_movie(term)[0]
             
-            # show searched movies
-            for movie in searched:
-                print(movie.movieID, movie['title'])
-        case 3:
-            # get selection
-            selection = str(input("\nSelection(movieID): "))
-            selected_movie = movies.get_movie(selection)
-            print("Selected ", selected_movie.movieID, selected_movie['title'])
-            selected.append(selected_movie)
+            # clustering
             
-            # update recommendations
-            genres_weighted_dictionary = {'total': 0}
-            for movie in selected:
-                for genre in movie['genres']:
-                    if genre in genres_weighted_dictionary:
-                        genres_weighted_dictionary[genre] += 1
-                    else:
-                        genres_weighted_dictionary[genre] = 1
-                    genres_weighted_dictionary['total'] += 1
-                    
-            df_movies['multiple_metrics'] = df_movies.apply(lambda x: combined_metrics(genres_weighted_dictionary, selected, x), axis='columns')
-            sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
-            # drop the original movie selections from the results:
-            for movie in selected:
-                sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
-            recommendations = sorted_df['title'].head(K).tolist()
-        case 4:
-            # show selected movies
-            print("\nSelected movies:")
-            for movie in selected:
-                print(movie.movieID, movie['title'])
+            #Below is giving the user an oppurtunity to choose how many clusters
+            k = int(input("Choose value of k(must be greater than 2): "))
+            #Weight to determine weight of each
+            print("Choose the Weight distribution for each of the following")
+            cos_weight = float(input("Enter the weight for cosine similarity (e.g. 0.8): "))
+            lev_weight = float(input("Enter the weight for Levenshtein distance (e.g. 0.1): "))
+            ed_weight = float(input("Enter the weight for Euclidean(e.g. 0.1): "))
+            #weighted_sum = cos_weight * cos_result + lev_weight * lev_result + ed_weight * ed_result
+            # Sort the recommendations by the weighted sum in descending order
+            recommendations = sorted(recommendations, key=lambda x: x['weighted_sum'], reverse=True)
         case _:
-            break
+            break 
+    # part 2       
+    base_case_desc = ""
+    df_movies['multiple_metrics'] = df_movies.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
+    sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
+    # drop the original movie selections from the results:
+    for movie in selected:
+        sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
+    recommendations = sorted_df['title'].head(K).tolist()
 
 ############################################################################
 # END OF PROGRAM
