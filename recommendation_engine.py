@@ -9,17 +9,14 @@
 import pandas as pd
 from imdb import Cinemagoer
 import Levenshtein
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import TfidfVectorizer
 
-def weighted_jaccard_similarity(weighted_dictionary: dict, comparator_genres: str):
-    # weighted_dictionary is based on all the selections that the user has made so far
-    # comparator_genres is another movie's genres that is being compared
-    numerator = 0
-    denominator = weighted_dictionary['total']
-    for genre in comparator_genres.split('|'):
-        if genre in weighted_dictionary:
-            numerator += weighted_dictionary[genre]
-
-    return numerator / denominator
+def cosine_similarity_function(base_case_desc, comparator_desc):
+    # this line will convert the plots from strings to vectors in a single matrix:
+    tfidf_matrix = tfidf_vectorizer.fit_transform((base_case_desc, comparator_desc))
+    results = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])
+    return results[0][0]
 
 def euclidean_distance(selections: list, comparator_year: int):
     result = 0
@@ -33,22 +30,27 @@ def levenshtein_distance(selections: list, comparator_title: str):
         result += Levenshtein.ratio(movie['title'], comparator_title)
     return result
     
-def combined_metrics(weighted_dictionary: dict, selections: list, comparator_movie: pd.core.series.Series):
-    wjs_result = weighted_jaccard_similarity(weighted_dictionary, comparator_movie['genres'])
+def combined_metrics(base_case_desc: str, selections: list, comparator_movie: pd.core.series.Series):
+    cs_result = cosine_similarity_function(base_case_desc, comparator_movie['overview'])
     ed_result = euclidean_distance(selections, int(comparator_movie['year']))
     lev_result = levenshtein_distance(selections, comparator_movie['title'])
     
     # normalize results
+    cs_result = (cs_result + 1) / 2.0
     norm_ed_result = ed_result / 100
     
-    return wjs_result + lev_result - norm_ed_result
+    return cs_result + lev_result - norm_ed_result
 
 def getYear(row):
     year = row['title'][-5:-1]
     return year if year.isdigit() else 0
     
-df = pd.read_csv('../movies.csv')
-df['year'] = df.apply(getYear, axis=1)
+tfidf_vectorizer = TfidfVectorizer()
+
+df_movies = pd.read_csv('movies.csv')
+df_desc = pd.read_csv('movies_description.csv')
+
+df_movies['year'] = df_movies.apply(getYear, axis=1)
 movies = Cinemagoer()
 K = 10
 
@@ -99,8 +101,8 @@ while True:
                         genres_weighted_dictionary[genre] = 1
                     genres_weighted_dictionary['total'] += 1
                     
-            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(genres_weighted_dictionary, selected, x), axis='columns')
-            sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
+            df_movies['multiple_metrics'] = df_movies.apply(lambda x: combined_metrics(genres_weighted_dictionary, selected, x), axis='columns')
+            sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
             # drop the original movie selections from the results:
             for movie in selected:
                 sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
