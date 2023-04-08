@@ -83,6 +83,7 @@ def clustering(numClust, name):
     print(f"\nRecommendations from cluster number {cluster_number}")
     print("====================")
     print(cluster_movies.head(10))
+    return cluster_movies
 
     '''for i in range(numClust):
         if(name is in i):
@@ -98,12 +99,12 @@ def get_recommendations():
     movie = movies.search_movie(movie_entry.get())[0]
     movie_id = movie.movieID[1:]
     K = int(cluster_entry.get())
-    clustering(K, movie)
+    df_cluster = clustering(K, movie)
 
     # perform the recommendation logic here using the input values
-    base_case = df[(df['imdbId'] == int(movie_id))].iloc[0]
-    df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case, x), axis='columns')
-    sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
+    base_case = df_cluster[(df_cluster['imdbId'] == int(movie_id))].iloc[0]
+    df_cluster['multiple_metrics'] = df_cluster.apply(lambda x: combined_metrics(base_case, x), axis='columns')
+    sorted_df = df_cluster.sort_values(by='multiple_metrics', ascending=False)
     # drop first recommendation since it is the selected movie
     sorted_df.drop([0], inplace=True)
     # display the recommendations to the user
