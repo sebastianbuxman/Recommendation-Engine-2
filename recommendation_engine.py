@@ -70,14 +70,27 @@ def clustering(numClust, name):
     # Add the cluster labels to the dataset
     df_genre['cluster_labels'] = kmeans.labels_
 
-    for i in range(numClust):
-        '''if(name is in i):
-            make recommendations from that cluster'''
+    if name not in df['original_title'].values:
+        print(f"\nThe movie '{name}' is not in the dataframe.")
+        return
+
+        # Check if the movie name entered by the user is in a specific cluster
+        cluster_number = df_genre.loc[df['title'] == name, 'cluster_labels'].iloc[0]
+        print(f"\nThe movie '{name}' is in cluster number {cluster_number}")
+
+        # Make recommendations from the specific cluster
+        cluster_movies = df[df_genre['cluster_labels'] == cluster_number]
+        print(f"\nRecommendations from cluster number {cluster_number}")
+        print("====================")
+        print(cluster_movies.head(10))
+    '''for i in range(numClust):
+        if(name is in i):
+            make recommendations from that cluster
     # Print the top 10 movies in each cluster
     for cluster_number in range(numClust):
         print(f"\n\nCluster Number {cluster_number}")
         print("====================")
-        print(df[df_genre['cluster_labels'] == cluster_number].head(10))
+        print(df[df_genre['cluster_labels'] == cluster_number].head(10))'''
 
 def get_recommendations():
     # get the input values from the text boxes and checkboxes
