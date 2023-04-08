@@ -48,6 +48,34 @@ def getYear(row):
 def getID(row):
     Id = 'tt0'+str(row)
     return Id
+
+def clustering(numClust, name):
+    mlb = MultiLabelBinarizer()
+    df_genre = pd.DataFrame(mlb.fit_transform(df_movies['genres']),
+                            columns=mlb.classes_,
+                            index=df_movies['genres'].index)
+
+    # Scale the feature set
+    scaled_features = StandardScaler().fit_transform(df_genre.values)
+
+    # Perform k-means clustering
+    kmeans = KMeans(n_clusters=numClust, random_state=0, n_init='auto')
+    kmeans.fit(scaled_features)
+
+    # Add the cluster labels to the dataset
+    df_genre['cluster_labels'] = kmeans.labels_
+
+
+    for i in range(numClust):
+        '''if(name is in i):
+            make recommendations from that cluster'''
+    # Print the top 10 movies in each cluster
+    for cluster_number in range(numClust):
+        print(f"\n\nCluster Number {cluster_number}")
+        print("====================")
+        if()
+        print(df_movies[df_genre['cluster_labels'] == cluster_number].head(10))
+
     
 tfidf_vectorizer = TfidfVectorizer()
 
