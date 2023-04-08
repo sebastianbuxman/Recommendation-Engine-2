@@ -87,12 +87,12 @@ while True:
             recommendations = sorted(recommendations, key=lambda x: x['weighted_sum'], reverse=True)
             
             # part 2
-            base_case_desc = df[(df['imdbId'] == int(selected_movie_id))]['overview'].values[0]
-            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
-            sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
+            base_case = df[(df['imdbId'] == int(selected_movie_id))]
+            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case['overview'], selected, x), axis='columns')
+            sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
             # drop the original movie selections from the results:
             for movie in selected:
-                sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
+                sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == int(movie.movieID[1:])], inplace=True)
             recommendations = sorted_df['title'].head(K).tolist()
         case _:
             break 
