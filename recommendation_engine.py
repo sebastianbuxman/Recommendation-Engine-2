@@ -9,13 +9,8 @@
 import pandas as pd
 from imdb import Cinemagoer
 import Levenshtein
-from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.preprocessing import StandardScaler, MultiLabelBinarizer
-import matplotlib.pyplot as plt
-import seaborn as sns
-
 
 def cosine_similarity_function(base_case_desc, comparator_desc):
     # this line will convert the plots from strings to vectors in a single matrix:
@@ -57,79 +52,30 @@ df_desc = pd.read_csv('movies_description.csv')
 
 df_movies['year'] = df_movies.apply(getYear, axis=1)
 movies = Cinemagoer()
+K = 10
 
 recommendations = []
 selected = []
 
-def clustering(numClust):
-    mlb = MultiLabelBinarizer()
-    df_genre = pd.DataFrame(mlb.fit_transform(df_movies['genres']),
-                            columns=mlb.classes_,
-                            index=df_movies['genres'].index)
-    # Scale the feature set
-    scaled_features = StandardScaler().fit_transform(df_genre.values)
-
-    # Perform k-means clustering
-    kmeans = KMeans(n_clusters=numClust, random_state=0, n_init='auto')
-    kmeans.fit(scaled_features)
-
-    # Add the cluster labels to the dataset
-    df_genre['cluster_labels'] = kmeans.labels_
-
-    # Print the top 10 movies in each cluster
-    for cluster_number in range(numClust):
-        print(f"\n\nCluster Number {cluster_number}")
-        print("====================")
-        print(df_movies[df_genre['cluster_labels'] == cluster_number].head(10))
-    '''see_visuals = False
-    #df_genre = pd.get_dummies(df_movies, columns=['genres'])
-    mlb = MultiLabelBinarizer()
-    df_genre = pd.DataFrame(mlb.fit_transform(df_movies['genres']),
-                            columns = mlb.classes_,
-                            index=df_movies['genres'].index)
-    X = df_genre.values
-    scaled_features = StandardScaler().fit_transform(X)
-
-    SS_distance =[]
-    for i in range(numClust):
-        kmeans = KMeans(n_clusters=numClust, random_state=0, n_init='auto')
-        kmeans.fit(scaled_features)
-        labels = kmeans.labels_
-        SS_distance.append(kmeans.inertia_)
-        print(f"\nK-means labels for {numClust} cluster_numbers: {kmeans.labels_}, which translates to the "
-          f"following cluster_numbers:")
-        df_genre['cluster_numbers'] = labels
-
-    plt.plot(numClust, SS_distance,'bx-')
-    plt.xlabel('k')
-    plt.ylabel('SS_distances')
-    plt.show()'''
-
-
-
-    '''sns.lmplot(x='genres', y='title', data=df_genre, fit_reg=False, hue="cluster_numbers",
-               scatter_kws={"marker": "D",
-               "s": 100})  # lmplot documentation: https://seaborn.pydata.org/generated/seaborn.lmplot.html
-    plt.title(f'Height vs Weight - {numClust} cluster_numbers')
-    plt.xlabel('Height')
-    plt.ylabel('Weight')
-    plt.show()'''
-
-
-
+# getting top 10 movies for initial recommendation
+# and show them
+top250 = movies.get_top250_movies()
+print('\nInitial recommendations:')
+for i in range(K):
+    recommendations.append(top250[i])
+    print(top250[i]['title'])
+    
 while True:
-    option= int(input("\n1: Search Movie Titles \n2: Exit \n"))
-
+    option: int(input("\n1: Search Movie Titles \n2: Exit"))
     match option:
         case 1:
             term = str(input("Enter Movie title of choice:"))
             selected_movie = movies.search_movie(term)[0]
             
             # clustering
-
+            
             #Below is giving the user an oppurtunity to choose how many clusters
             k = int(input("Choose value of k(must be greater than 2): "))
-            clustering(k)
             #Weight to determine weight of each
             print("Choose the Weight distribution for each of the following")
             cos_weight = float(input("Enter the weight for cosine similarity (e.g. 0.8): "))
@@ -147,7 +93,7 @@ while True:
     # drop the original movie selections from the results:
     for movie in selected:
         sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
-    recommendations = sorted_df['title'].head(k).tolist()
+    recommendations = sorted_df['title'].head(K).tolist()
 
 ############################################################################
 # END OF PROGRAM
