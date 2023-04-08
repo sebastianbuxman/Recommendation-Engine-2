@@ -43,14 +43,16 @@ def getYear(row):
     return year if year.isdigit() else 0
 
 def getID(row):
-    Id = 'tt0'+str(row)
-    return Id
+    stringRow = str(row)
+    while len(stringRow) < 7:
+        stringRow = "0" + stringRow
+    return "tt" + stringRow
 
 def clustering(numClust, name):
     mlb = MultiLabelBinarizer()
-    df_genre = pd.DataFrame(mlb.fit_transform(df_movies['genres']),
+    df_genre = pd.DataFrame(mlb.fit_transform(df['genres']),
                             columns=mlb.classes_,
-                            index=df_movies['genres'].index)
+                            index=df['genres'].index)
 
     # Scale the feature set
     scaled_features = StandardScaler().fit_transform(df_genre.values)
@@ -69,7 +71,7 @@ def clustering(numClust, name):
     for cluster_number in range(numClust):
         print(f"\n\nCluster Number {cluster_number}")
         print("====================")
-        print(df_movies[df_genre['cluster_labels'] == cluster_number].head(10))
+        print(df[df_genre['cluster_labels'] == cluster_number].head(10))
 
 def get_recommendations():
     # get the input values from the text boxes and checkboxes
@@ -82,11 +84,11 @@ def get_recommendations():
     base_case = df[(df['imdbId'] == int(movie_id))].iloc[0]
     df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case, x), axis='columns')
     sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
-    # drop the original movie selections from the results:
-    sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == int(movie_id)], inplace=True)
-    recommendations = sorted_df['title'].head(K).tolist()
+    # drop first recommendation since it is the selected movie
+    sorted_df.drop([0], inplace=True)
     # display the recommendations to the user
-    messagebox.showinfo("Recommendations", recommendations)
+    recommendations = sorted_df['original_title'].head().tolist()
+    messagebox.showinfo("Recommendations", '\n'.join(recommendations))
 
 # Data processing ---------------------------------------------------------------------------------
 tfidf_vectorizer = TfidfVectorizer()
@@ -98,6 +100,7 @@ df_movies['imdb_id'] = df_movies['imdbId'].apply(getID)
 df = df_movies.merge(df_desc, on='imdb_id')
 
 df['year'] = df.apply(getYear, axis=1)
+df.fillna("", inplace=True)
 movies = Cinemagoer()
 
 # GUI application ---------------------------------------------------------------------------------
