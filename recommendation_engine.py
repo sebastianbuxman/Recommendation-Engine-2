@@ -46,32 +46,23 @@ def getYear(row):
     return year if year.isdigit() else 0
 
 def getID(row):
-    Id = row
+    Id = 'tt'+str(row)
     return Id
     
 tfidf_vectorizer = TfidfVectorizer()
 
 df_movies = pd.read_csv('movies.csv')
 df_desc = pd.read_csv('movies_description.csv')
+df_movies['imdb_id'] = df_movies['imdbId'].apply(getID)
 
-df_desc['cutId'] = df_desc['imdb_id'].apply(getID)
-print(df_desc.head())
-print(df_desc.dtypes)
+df = df_movies.merge(df_desc, how='inner', on='imdb_id')
 
-df_movies['year'] = df_movies.apply(getYear, axis=1)
+df['year'] = df.apply(getYear, axis=1)
 movies = Cinemagoer()
 K = 10
 
 recommendations = []
 selected = []
-
-# getting top 10 movies for initial recommendation
-# and show them
-top250 = movies.get_top250_movies()
-print('\nInitial recommendations:')
-for i in range(K):
-    recommendations.append(top250[i])
-    print(top250[i]['title'])
     
 while True:
     print("\n1: Search Movie Titles \n2: Exit")
@@ -97,7 +88,7 @@ while True:
             break 
     # part 2       
     base_case_desc = ""
-    df_movies['multiple_metrics'] = df_movies.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
+    df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
     sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
     # drop the original movie selections from the results:
     for movie in selected:
