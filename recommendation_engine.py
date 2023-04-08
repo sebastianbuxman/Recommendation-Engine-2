@@ -44,11 +44,19 @@ def combined_metrics(base_case_desc: str, selections: list, comparator_movie: pd
 def getYear(row):
     year = row['title'][-5:-1]
     return year if year.isdigit() else 0
+
+def getID(row):
+    Id = row
+    return Id
     
 tfidf_vectorizer = TfidfVectorizer()
 
 df_movies = pd.read_csv('movies.csv')
 df_desc = pd.read_csv('movies_description.csv')
+
+df_desc['cutId'] = df_desc['imdb_id'].apply(getID)
+print(df_desc.head())
+print(df_desc.dtypes)
 
 df_movies['year'] = df_movies.apply(getYear, axis=1)
 movies = Cinemagoer()
@@ -66,7 +74,8 @@ for i in range(K):
     print(top250[i]['title'])
     
 while True:
-    option: int(input("\n1: Search Movie Titles \n2: Exit"))
+    print("\n1: Search Movie Titles \n2: Exit")
+    option = int(input("Choose option: "))
     match option:
         case 1:
             term = str(input("Enter Movie title of choice:"))
