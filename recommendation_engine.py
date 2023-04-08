@@ -74,15 +74,15 @@ def clustering(numClust, name):
         print(f"\nThe movie '{name}' is not in the dataframe.")
         return
 
-        # Check if the movie name entered by the user is in a specific cluster
-        cluster_number = df_genre.loc[df['title'] == name, 'cluster_labels'].iloc[0]
-        print(f"\nThe movie '{name}' is in cluster number {cluster_number}")
+    # Check if the movie name entered by the user is in a specific cluster
+    cluster_number = df_genre.loc[df['title'] == name, 'cluster_labels'].iloc[0]
+    print(f"\nThe movie '{name}' is in cluster number {cluster_number}")
+    # Make recommendations from the specific cluster
+    cluster_movies = df[df_genre['cluster_labels'] == cluster_number]
+    print(f"\nRecommendations from cluster number {cluster_number}")
+    print("====================")
+    print(cluster_movies.head(10))
 
-        # Make recommendations from the specific cluster
-        cluster_movies = df[df_genre['cluster_labels'] == cluster_number]
-        print(f"\nRecommendations from cluster number {cluster_number}")
-        print("====================")
-        print(cluster_movies.head(10))
     '''for i in range(numClust):
         if(name is in i):
             make recommendations from that cluster
