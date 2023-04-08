@@ -46,7 +46,7 @@ def getYear(row):
     return year if year.isdigit() else 0
 
 def getID(row):
-    Id = 'tt'+str(row)
+    Id = 'tt0'+str(row)
     return Id
     
 tfidf_vectorizer = TfidfVectorizer()
@@ -55,7 +55,9 @@ df_movies = pd.read_csv('movies.csv')
 df_desc = pd.read_csv('movies_description.csv')
 df_movies['imdb_id'] = df_movies['imdbId'].apply(getID)
 
-df = df_movies.merge(df_desc, how='inner', on='imdb_id')
+df = df_movies.merge(df_desc, on='imdb_id')
+print(df.head())
+print(df.dtypes)
 
 df['year'] = df.apply(getYear, axis=1)
 movies = Cinemagoer()
@@ -71,6 +73,8 @@ while True:
         case 1:
             term = str(input("Enter Movie title of choice:"))
             selected_movie = movies.search_movie(term)[0]
+            selected_movie_id = selected_movie.movieID[1:]
+            print(selected_movie, selected_movie_id)
             
             # clustering
             
@@ -84,16 +88,17 @@ while True:
             #weighted_sum = cos_weight * cos_result + lev_weight * lev_result + ed_weight * ed_result
             # Sort the recommendations by the weighted sum in descending order
             recommendations = sorted(recommendations, key=lambda x: x['weighted_sum'], reverse=True)
+            
+            # part 2
+            base_case_desc = df[(df['imdbId'] == int(selected_movie_id))]['overview'].values[0]
+            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
+            sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
+            # drop the original movie selections from the results:
+            for movie in selected:
+                sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
+            recommendations = sorted_df['title'].head(K).tolist()
         case _:
             break 
-    # part 2       
-    base_case_desc = ""
-    df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
-    sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
-    # drop the original movie selections from the results:
-    for movie in selected:
-        sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == movie.movieID[1:]].index, inplace=True)
-    recommendations = sorted_df['title'].head(K).tolist()
 
 ############################################################################
 # END OF PROGRAM
