@@ -12,7 +12,7 @@ import Levenshtein
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
 
-def cosine_similarity_function(base_case_desc, comparator_desc):
+def cosine_similarity_function(base_case_desc: str, comparator_desc: str):
     # this line will convert the plots from strings to vectors in a single matrix:
     tfidf_matrix = tfidf_vectorizer.fit_transform((base_case_desc, comparator_desc))
     results = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])
@@ -31,6 +31,7 @@ def levenshtein_distance(selections: list, comparator_title: str):
     return result
     
 def combined_metrics(base_case_desc: str, selections: list, comparator_movie: pd.core.series.Series):
+    print(comparator_movie['overview'])
     cs_result = cosine_similarity_function(base_case_desc, comparator_movie['overview'])
     ed_result = euclidean_distance(selections, int(comparator_movie['year']))
     lev_result = levenshtein_distance(selections, comparator_movie['title'])
@@ -56,6 +57,7 @@ df_desc = pd.read_csv('movies_description.csv')
 df_movies['imdb_id'] = df_movies['imdbId'].apply(getID)
 
 df = df_movies.merge(df_desc, on='imdb_id')
+print(df.head())
 
 df['year'] = df.apply(getYear, axis=1)
 movies = Cinemagoer()
@@ -69,7 +71,7 @@ while True:
     option = int(input("Choose option: "))
     match option:
         case 1:
-            term = str(input("Enter Movie title of choice:"))
+            term = str(input("Enter Movie title of choice: "))
             selected_movie = movies.search_movie(term)[0]
             selected_movie_id = selected_movie.movieID[1:]
             
@@ -87,9 +89,10 @@ while True:
             recommendations = sorted(recommendations, key=lambda x: x['weighted_sum'], reverse=True)
             
             # part 2
-            base_case = df[(df['imdbId'] == int(selected_movie_id))]
-            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case['overview'], selected, x), axis='columns')
-            sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
+            base_case_desc = df[(df['imdbId'] == int(selected_movie_id))]['overview'].values[0]
+            print(base_case_desc)
+            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case_desc, selected, x), axis='columns')
+            sorted_df = df_movies.sort_values(by='multiple_metrics', ascending=False)
             # drop the original movie selections from the results:
             for movie in selected:
                 sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == int(movie.movieID[1:])], inplace=True)
