@@ -68,13 +68,15 @@ def clustering(numClust, name):
 
     # Add the cluster labels to the dataset
     df_genre['cluster_labels'] = kmeans.labels_
+    
+    print(df_genre)
 
-    if name not in df['original_title'].values:
+    if str(name) not in df['original_title'].values:
         print(f"\nThe movie '{name}' is not in the dataframe.")
         return
 
     # Check if the movie name entered by the user is in a specific cluster
-    cluster_number = df_genre.loc[df['title'] == name, 'cluster_labels'].iloc[0]
+    cluster_number = df_genre.loc[df['original_title'] == str(name), 'cluster_labels'].iloc[0]
     print(f"\nThe movie '{name}' is in cluster number {cluster_number}")
     # Make recommendations from the specific cluster
     cluster_movies = df[df_genre['cluster_labels'] == cluster_number]
