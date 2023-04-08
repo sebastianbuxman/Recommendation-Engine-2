@@ -49,10 +49,14 @@ def getID(row):
     return "tt" + stringRow
 
 def clustering(numClust, name):
+    # convert the string of genres to a list:
+    df['genres_list'] = [x.split('|') for x in df['genres']]
+    
     mlb = MultiLabelBinarizer()
-    df_genre = pd.DataFrame(mlb.fit_transform(df['genres']),
+    df_genre = pd.DataFrame(mlb.fit_transform(df['genres_list']),
                             columns=mlb.classes_,
                             index=df['genres'].index)
+    print(df_genre)
 
     # Scale the feature set
     scaled_features = StandardScaler().fit_transform(df_genre.values)
