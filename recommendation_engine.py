@@ -1,45 +1,42 @@
-############################################################################
-# Name: Max Beard
-# Date: 03/26/2023
-# Course: CS 3580
-# Project: Recommendation Engine
-# Description: a movie recommendation engine that is similar to Netflix
-############################################################################
-
 import pandas as pd
 from imdb import Cinemagoer
 import Levenshtein
+from sklearn.cluster import KMeans
+from sklearn.discriminant_analysis import StandardScaler
 from sklearn.metrics.pairwise import cosine_similarity
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.preprocessing import MultiLabelBinarizer
+import tkinter as tk
+from tkinter import messagebox
 
-def cosine_similarity_function(base_case_desc, comparator_desc):
-    # this line will convert the plots from strings to vectors in a single matrix:
+# Functions -----------------------------------------------------------------------------------------
+def cosine_similarity_function(base_case_desc: str, comparator_desc: str):
+    # this line will convert the descriptions from strings to vectors in a single matrix:
     tfidf_matrix = tfidf_vectorizer.fit_transform((base_case_desc, comparator_desc))
     results = cosine_similarity(tfidf_matrix[0], tfidf_matrix[1])
     return results[0][0]
 
-def euclidean_distance(selections: list, comparator_year: int):
-    result = 0
-    for movie in selections:
-        result += abs(int(movie['year']) - comparator_year)
-    return result
+def euclidean_distance(base_case_year: int, comparator_year: int):
+    return abs(base_case_year - comparator_year)
 
-def levenshtein_distance(selections: list, comparator_title: str):
-    result = 0
-    for movie in selections:
-        result += Levenshtein.ratio(movie['title'], comparator_title)
-    return result
+def levenshtein_distance(base_case_title: str, comparator_title: str):
+    return Levenshtein.ratio(base_case_title, comparator_title)
     
-def combined_metrics(base_case_desc: str, selections: list, comparator_movie: pd.core.series.Series):
-    cs_result = cosine_similarity_function(base_case_desc, comparator_movie['overview'])
-    ed_result = euclidean_distance(selections, int(comparator_movie['year']))
-    lev_result = levenshtein_distance(selections, comparator_movie['title'])
+def combined_metrics(base_case: pd.core.series.Series, comparator_movie: pd.core.series.Series):
+    cs_result = cosine_similarity_function(base_case['overview'], comparator_movie['overview'])
+    ed_result = euclidean_distance(int(base_case['year']), int(comparator_movie['year']))
+    lev_result = levenshtein_distance(base_case['title'], comparator_movie['title'])
     
     # normalize results
     cs_result = (cs_result + 1) / 2.0
     norm_ed_result = ed_result / 100
     
-    return cs_result + lev_result - norm_ed_result
+    # getting weights
+    cs_weight = float(cosine_weight_entry.get()) if cosine_var.get() else 0
+    lev_weight = float(levenshtein_weight_entry.get()) if levenshtein_var.get() else 0
+    ed_weight = float(euclidean_weight_entry.get()) if euclidean_var.get() else 0
+    
+    return cs_result*cs_weight + lev_result*lev_weight - norm_ed_result*ed_weight
 
 def getYear(row):
     year = row['title'][-5:-1]
@@ -65,7 +62,6 @@ def clustering(numClust, name):
     # Add the cluster labels to the dataset
     df_genre['cluster_labels'] = kmeans.labels_
 
-
     for i in range(numClust):
         '''if(name is in i):
             make recommendations from that cluster'''
@@ -73,10 +69,26 @@ def clustering(numClust, name):
     for cluster_number in range(numClust):
         print(f"\n\nCluster Number {cluster_number}")
         print("====================")
-        if()
         print(df_movies[df_genre['cluster_labels'] == cluster_number].head(10))
 
-    
+def get_recommendations():
+    # get the input values from the text boxes and checkboxes
+    movie = movies.search_movie(movie_entry.get())[0]
+    movie_id = movie.movieID[1:]
+    K = int(cluster_entry.get())
+    clustering(K, movie)
+
+    # perform the recommendation logic here using the input values
+    base_case = df[(df['imdbId'] == int(movie_id))].iloc[0]
+    df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case, x), axis='columns')
+    sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
+    # drop the original movie selections from the results:
+    sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == int(movie_id)], inplace=True)
+    recommendations = sorted_df['title'].head(K).tolist()
+    # display the recommendations to the user
+    messagebox.showinfo("Recommendations", recommendations)
+
+# Data processing ---------------------------------------------------------------------------------
 tfidf_vectorizer = TfidfVectorizer()
 
 df_movies = pd.read_csv('movies.csv')
@@ -87,44 +99,54 @@ df = df_movies.merge(df_desc, on='imdb_id')
 
 df['year'] = df.apply(getYear, axis=1)
 movies = Cinemagoer()
-K = 10
 
-recommendations = []
-selected = []
-    
-while True:
-    print("\n1: Search Movie Titles \n2: Exit")
-    option = int(input("Choose option: "))
-    match option:
-        case 1:
-            term = str(input("Enter Movie title of choice:"))
-            selected_movie = movies.search_movie(term)[0]
-            selected_movie_id = selected_movie.movieID[1:]
-            
-            # clustering
-            
-            #Below is giving the user an oppurtunity to choose how many clusters
-            k = int(input("Choose value of k(must be greater than 2): "))
-            #Weight to determine weight of each
-            print("Choose the Weight distribution for each of the following")
-            cos_weight = float(input("Enter the weight for cosine similarity (e.g. 0.8): "))
-            lev_weight = float(input("Enter the weight for Levenshtein distance (e.g. 0.1): "))
-            ed_weight = float(input("Enter the weight for Euclidean(e.g. 0.1): "))
-            #weighted_sum = cos_weight * cos_result + lev_weight * lev_result + ed_weight * ed_result
-            # Sort the recommendations by the weighted sum in descending order
-            recommendations = sorted(recommendations, key=lambda x: x['weighted_sum'], reverse=True)
-            
-            # part 2
-            base_case = df[(df['imdbId'] == int(selected_movie_id))]
-            df['multiple_metrics'] = df.apply(lambda x: combined_metrics(base_case['overview'], selected, x), axis='columns')
-            sorted_df = df.sort_values(by='multiple_metrics', ascending=False)
-            # drop the original movie selections from the results:
-            for movie in selected:
-                sorted_df.drop(sorted_df.loc[sorted_df['imdbId'] == int(movie.movieID[1:])], inplace=True)
-            recommendations = sorted_df['title'].head(K).tolist()
-        case _:
-            break 
+# GUI application ---------------------------------------------------------------------------------
+root = tk.Tk()
+root.title("Movie Recommendation System")
+mainframe = tk.Frame(root, padx=20, pady=20)
+mainframe.grid(column=0, row=0)
 
-############################################################################
-# END OF PROGRAM
-############################################################################
+# create labels and text boxes for movie title and number of clusters
+movie_label = tk.Label(mainframe, text="Movie title:")
+movie_label.grid(row=0, column=0)
+movie_entry = tk.Entry(mainframe)
+movie_entry.grid(row=0, column=1)
+
+cluster_label = tk.Label(mainframe, text="Number of clusters:")
+cluster_label.grid(row=1, column=0)
+cluster_entry = tk.Entry(mainframe)
+cluster_entry.grid(row=1, column=1)
+
+# create checkboxes and entry boxes for distance metrics and weights
+cosine_var = tk.IntVar()
+cosine_check = tk.Checkbutton(mainframe, text="Cosine similarity", variable=cosine_var)
+cosine_check.grid(row=2, column=0)
+
+cosine_weight_label = tk.Label(mainframe, text="Weight:")
+cosine_weight_label.grid(row=2, column=1)
+cosine_weight_entry = tk.Entry(mainframe)
+cosine_weight_entry.grid(row=2, column=2)
+
+levenshtein_var = tk.IntVar()
+levenshtein_check = tk.Checkbutton(mainframe, text="Levenshtein distance", variable=levenshtein_var)
+levenshtein_check.grid(row=3, column=0)
+
+levenshtein_weight_label = tk.Label(mainframe, text="Weight:")
+levenshtein_weight_label.grid(row=3, column=1)
+levenshtein_weight_entry = tk.Entry(mainframe)
+levenshtein_weight_entry.grid(row=3, column=2)
+
+euclidean_var = tk.IntVar()
+euclidean_check = tk.Checkbutton(mainframe, text="Euclidean distance", variable=euclidean_var)
+euclidean_check.grid(row=4, column=0)
+
+euclidean_weight_label = tk.Label(mainframe, text="Weight:")
+euclidean_weight_label.grid(row=4, column=1)
+euclidean_weight_entry = tk.Entry(mainframe)
+euclidean_weight_entry.grid(row=4, column=2)
+
+# create button for getting recommendations
+recommend_button = tk.Button(mainframe, text="Get Recommendations", command=get_recommendations)
+recommend_button.grid(row=5, column=1)
+
+root.mainloop()
