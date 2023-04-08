@@ -56,8 +56,6 @@ df_desc = pd.read_csv('movies_description.csv')
 df_movies['imdb_id'] = df_movies['imdbId'].apply(getID)
 
 df = df_movies.merge(df_desc, on='imdb_id')
-print(df.head())
-print(df.dtypes)
 
 df['year'] = df.apply(getYear, axis=1)
 movies = Cinemagoer()
@@ -74,7 +72,6 @@ while True:
             term = str(input("Enter Movie title of choice:"))
             selected_movie = movies.search_movie(term)[0]
             selected_movie_id = selected_movie.movieID[1:]
-            print(selected_movie, selected_movie_id)
             
             # clustering
             
