@@ -56,8 +56,9 @@ def clustering(numClust, name):
     df_genre = pd.DataFrame(mlb.fit_transform(df['genres_list']),
                             columns=mlb.classes_,
                             index=df['genres'].index)
-    df_genre = pd.concat([df[['title', 'imdbId']], df_genre], axis=1)
+    df_genre = pd.concat([df[['original_title', 'imdbId']], df_genre], axis=1)
     print(df_genre)
+    print(name)
 
     # Scale the feature set
     scaled_features = StandardScaler().fit_transform(df_genre.values)
